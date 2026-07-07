@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#12151A">
+<title>Signal Check — AI Optimization Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151A;
+    --panel:#1B1F26;
+    --panel-raised:#20252D;
+    --line:#2C323C;
+    --text:#E9ECEF;
+    --muted:#828A96;
+    --good:#39D98A;
+    --warn:#F5B84B;
+    --bad:#FF5C5C;
+    --signal:#4FC3F7;
+    --agent:#A07CFE;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    min-height:100vh;
+    padding:24px 16px 60px;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+  }
+  .wrap{max-width:640px;margin:0 auto;}
+  .masthead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--line);
+    padding-bottom:14px;
+    margin-bottom:22px;
+  }
+  .masthead h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+  .masthead h1 span{color:var(--signal);}
+  .masthead .tag{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px;margin-bottom:16px;}
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;}
+  input, select, textarea{
+    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);
+    padding:11px 12px;border-radius:3px;font-family:'JetBrains Mono', monospace;font-size:13px;margin-bottom:14px;
+  }
+  input:focus, select:focus, textarea:focus{outline:none;border-color:var(--signal);}
+  .help{font-size:11px;color:var(--muted);margin:-8px 0 14px;line-height:1.5;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  button{
+    width:100%;background:var(--signal);color:#0A0D11;border:none;padding:13px;
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;
+    text-transform:uppercase;border-radius:3px;cursor:pointer;margin-bottom:10px;
+  }
+  button:disabled{background:var(--line);color:var(--muted);cursor:wait;}
+  button.agent-btn{background:var(--agent);color:#fff;}
+  .error{background:rgba(255,92,92,0.08);border:1px solid var(--bad);color:var(--bad);padding:12px 14px;border-radius:3px;font-size:12.5px;line-height:1.6;margin-bottom:16px;}
+  
+  /* Results Styling */
+  .report-head{display:flex;gap:14px;margin-bottom:4px;}
+  .thumb{width:120px;height:68px;object-fit:cover;border-radius:3px;border:1px solid var(--line);flex-shrink:0;}
+  .rh-meta{min-width:0;}
+  .rh-title{font-family:'Oswald',sans-serif;font-size:15px;font-weight:500;line-height:1.35;margin-bottom:6px;}
+  .rh-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
+  .rh-stats b{color:var(--text);font-weight:500;}
+  .meter-row{display:flex;align-items:center;gap:14px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+  .meter-num{font-family:'Oswald',sans-serif;font-size:34px;font-weight:700;line-height:1;min-width:62px;}
+  .meter-bar-wrap{flex:1;}
+  .meter-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  .meter-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--line);display:flex;}
+  .meter-fill{height:100%;transition:width 0.6s ease;}
+  .section-label{font-family:'Oswald',sans-serif;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:20px 0 10px;display:flex;align-items:center;gap:8px;}
+  .section-label::after{content:'';flex:1;height:1px;background:var(--line);}
+  .finding{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.55;}
+  .dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .dot.good{background:var(--good);}
+  .dot.warn{background:var(--warn);}
+  .dot.bad{background:var(--bad);}
+  .dot.agent-dot{background:var(--agent);}
+  .finding-text b{color:var(--text);font-weight:600;}
+  .finding-text .detail{color:var(--muted);display:block;margin-top:2px;}
+  #results, #aiWorkspace{display:none;}
+  .loading{text-align:center;color:var(--muted);font-size:12px;padding:20px 0;display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>Signal<span>Check</span></h1>
+    <div class="tag">AI Growth Agent</div>
+  </div>
+
+  <div class="panel">
+    <label for="apiKey">YouTube Data API Key / Gemini API Key</label>
+    <input id="apiKey" type="password" placeholder="AIzaSy...">
+    <div class="help">Provide your Google developer key. It will be used securely client-side for both YouTube metrics and AI content generations.</div>
+
+    <label for="channelId">Load Channel Content Dynamically</label>
+    <div style="display: flex; gap: 8px;">
+      <input id="channelId" type="text" placeholder="e.g. @KashishChauhanOfficial" style="margin-bottom:0;">
+      <button id="fetchVideosBtn" onclick="fetchChannelVideos()" style="width: auto; white-space: nowrap; padding: 0 16px;">Fetch Videos</button>
+    </div>
+
+    <div id="videoSelectorContainer" style="display:none; margin-top:14px;">
+      <label for="videoSelect">Select a Channel Video</label>
+      <select id="videoSelect" onchange="selectVideo(this.value)"></select>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label for="videoUrl">Or Paste Specific Video Link / ID</label>
+      <input id="videoUrl" type="text" placeholder="https://youtu.be/... or 11-char ID">
+    </div>
+
+    <button id="runBtn" onclick="runCheck()">Run Core Diagnostic</button>
+  </div>
+
+  <div class="loading" id="loading">Syncing secure connection channels...</div>
+  <div id="errorBox"></div>
+
+  <!-- core diagnostics panel -->
+  <div class="panel" id="results">
+    <div class="report-head">
+      <img class="thumb" id="thumbImg" src="" alt="thumbnail">
+      <div class="rh-meta">
+        <div class="rh-title" id="videoTitle"></div>
+        <div class="rh-stats" id="videoStats"></div>
+      </div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-num" id="scoreNum">--</div>
+      <div class="meter-bar-wrap">
+        <div class="meter-label">SEO Performance Grade</div>
+        <div class="meter-bar"><div class="meter-fill" id="scoreFill"></div></div>
+      </div>
+    </div>
+    <div class="section-label">Structural Audits</div>
+    <div id="findings"></div>
+    
+    <button class="agent-btn" id="aiBtn" onclick="generateAIOptimization()" style="margin-top:18px;">✨ Run AI Agent Brainstorm</button>
+  </div>
+
+  <!-- agent optimization workspace -->
+  <div class="panel" id="aiWorkspace">
+    <div class="section-label" style="color:var(--agent)">🤖 AI Agent Optimization Workspace</div>
+    <div class="help">Review the generated viral titles and content strategies structured specifically for your video context below.</div>
+    
+    <div id="aiOutputDisplay"></div>
+  </div>
+
+</div>
+
+<script>
+// Global object to track active data
+let currentVideoMetadata = { title: '', description: '', tags: [] };
+
+function extractVideoId(input) {
+  input = input.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    if (url.hostname.includes('youtu.be')) return url.pathname.slice(1).split('/')[0];
+    if (url.pathname.includes('/shorts/')) return url.pathname.split('/shorts/')[1].split('/')[0];
+    if (url.searchParams.get('v')) return url.searchParams.get('v');
+    const parts = url.pathname.split('/').filter(Boolean);
+    return parts[parts.length - 1];
+  } catch (e) { return null; }
+}
+
+function fmtNum(n) {
+  n = Number(n);
+  if (n >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,'') + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,'') + 'K';
+  return String(n);
+}
+
+function scoreColor(score) {
+  if (score >= 70) return '#39D98A';
+  if (score >= 40) return '#F5B84B';
+  return '#FF5C5C';
+}
+
+function addFinding(container, level, title, detail) {
+  const row = document.createElement('div');
+  row.className = 'finding';
+  row.innerHTML = `<div class="dot ${level}"></div><div class="finding-text"><b>${title}</b>${detail ? `<span class="detail">${detail}</span>` : ''}</div>`;
+  container.appendChild(row);
+}
+
+async function fetchChannelVideos() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  let channelInput = document.getElementById('channelId').value.trim();
+  const errorBox = document.getElementById('errorBox');
+  const selectorContainer = document.getElementById('videoSelectorContainer');
+  const videoSelect = document.getElementById('videoSelect');
+
+  if (!apiKey || !channelInput) {
+    errorBox.innerHTML = `<div class="error">Provide your API Key and a Channel handle or ID first.</div>`;
+    return;
+  }
+  errorBox.innerHTML = '';
+  if (channelInput.startsWith('@')) channelInput = channelInput.substring(1);
+
+  try {
+    const channelRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${channelInput}&key=${apiKey}`);
+    const channelData = await channelRes.json();
+    if (!channelData.items || channelData.items.length === 0) throw new Error("Channel handle not found.");
+
+    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+    const playlistRes = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=15&key=${apiKey}`);
+    const playlistData = await playlistRes.json();
+
+    videoSelect.innerHTML = '<option value="">-- Choose a Video --</option>';
+    playlistData.items.forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.snippet.resourceId.videoId;
+      option.textContent = item.snippet.title.substring(0, 60) + '...';
+      videoSelect.appendChild(option);
+    });
+    selectorContainer.style.display = 'block';
+  } catch (err) {
+    errorBox.innerHTML = `<div class="error"><b>Fetch Error:</b> ${err.message}</div>`;
+  }
+}
+
+function selectVideo(videoId) {
+  if (!videoId) return;
+  document.getElementById('videoUrl').value = videoId;
+  runCheck();
+}
+
+async function runCheck() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const rawUrl = document.getElementById('videoUrl').value.trim();
+  const errorBox = document.getElementById('errorBox');
+  const results = document.getElementById('results');
+  const aiWorkspace = document.getElementById('aiWorkspace');
+  const loading = document.getElementById('loading');
+  const btn = document.getElementById('runBtn');
+
+  errorBox.innerHTML = '';
+  results.style.display = 'none';
+  aiWorkspace.style.display = 'none';
+
+  const videoId = extractVideoId(rawUrl);
+  if (!apiKey || !videoId) {
+    errorBox.innerHTML = `<div class="error">Ensure an API key is pasted and a valid video link or ID is entered.</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  loading.style.display = 'block';
+
+  try {
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${apiKey}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error.message);
+    if (!data.items || data.items.length === 0) throw new Error('Video info inaccessible. Verify configuration settings.');
+
+    const item = data.items[0];
+    currentVideoMetadata.title = item.snippet.title;
+    currentVideoMetadata.description = item.snippet.description || '';
+    currentVideoMetadata.tags = item.snippet.tags || [];
+
+    const views = Number(item.statistics.viewCount || 0);
+    const likes = Number(item.statistics.likeCount || 0);
+    const comments = Number(item.statistics.commentCount || 0);
+    const thumb = item.snippet.thumbnails.high || item.snippet.thumbnails.medium || item.snippet.thumbnails.default;
+
+    document.getElementById('thumbImg').src = thumb.url;
+    document.getElementById('videoTitle').textContent = currentVideoMetadata.title;
+    document.getElementById('videoStats').innerHTML = `<span><b>${fmtNum(views)}</b> views</span><span><b>${fmtNum(likes)}</b> likes</span><span><b>${fmtNum(comments)}</b> comments</span>`;
+
+    const findings = document.getElementById('findings');
+    findings.innerHTML = '';
+    let score = 100;
+
+    if (currentVideoMetadata.title.length < 20 || currentVideoMetadata.title.length > 70) {
+      score -= 15;
+      addFinding(findings, 'warn', 'Title Length Outside Threshold', 'Currently counts ' + currentVideoMetadata.title.length + ' chars. Aim between 40-60 characters for complete mobile layouts.');
+    } else {
+      addFinding(findings, 'good', 'Title Length is Optimized', 'Fits parameters cleanly.');
+    }
+
+    if (currentVideoMetadata.description.length < 150) {
+      score -= 20;
+      addFinding(findings, 'bad', 'Thin Metadata Footprint', 'Descriptions need depth to help search indexing variants.');
+    } else {
+      addFinding(findings, 'good', 'Solid Base Description', 'Contains structural text entries.');
+    }
+
+    const engagementRate = views > 0 ? ((likes + comments) / views) * 100 : 0;
+    if (engagementRate < 2) {
+      score -= 10;
+      addFinding(findings, 'warn', 'Middling Audience Response (' + engagementRate.toFixed(2) + '%)', 'Spike metric visibility via direct prompt overlays.');
+    } else {
+      addFinding(findings, 'good', 'Healthy Engagement Threshold (' + engagementRate.toFixed(2) + '%)', 'Strong feedback loop confirmation.');
+    }
+
+    score = Math.max(10, Math.min(100, score));
+    document.getElementById('scoreNum').textContent = score;
+    document.getElementById('scoreNum').style.color = scoreColor(score);
+    document.getElementById('scoreFill').style.width = score + '%';
+    document.getElementById('scoreFill').style.background = scoreColor(score);
+
+    results.style.display = 'block';
+  } catch (err) {
+    errorBox.innerHTML = `<div class="error"><b>Diagnostic Error:</b> ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }
+}
+
+async function generateAIOptimization() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const workspace = document.getElementById('aiWorkspace');
+  const display = document.getElementById('aiOutputDisplay');
+  const aiBtn = document.getElementById('aiBtn');
+
+  display.innerHTML = '<div style="color:var(--muted); padding:10px 0;">Agent rendering core metadata optimization concepts...</div>';
+  workspace.style.display = 'block';
+  aiBtn.disabled = true;
+
+  const prompt = `You are a high-performance YouTube Optimization Agent. Analyze this video's active metadata and output an action plan for virality.
+  
+  CURRENT TITLE: ${currentVideoMetadata.title}
+  CURRENT DESCRIPTION: ${currentVideoMetadata.description}
+  
+  Provide your feedback exactly inside these three structured parts using clean HTML styling:
+  1. <h3>💥 3 Viral Title Options</h3> (Focus on strong psychological curiosity loops under 60 characters)
+  2. <h3>📝 Optimized Search Description</h3> (Write a highly descriptive 3-line description packed with natural search terms to update the top section with)
+  3. <h3>🏷️ Tag Cluster Suggestions</h3> (A list of 10-15 hyper-relevant contextual tags)`;
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    
+    let aiText = data.candidates[0].content.parts[0].text;
+    
+    // Simple markdown string sanitization to safely display html structures if model outputs them
+    aiText = aiText.replace(/```html/g, '').replace(/```/g, '').trim();
+    
+    display.innerHTML = `<div style="line-height:1.7; font-size:13.5px; color:var(--text);">${aiText}</div>`;
+  } catch (err) {
+    display.innerHTML = `<div class="error"><b>Agent Generation Failed:</b> ${err.message}<br><small>Confirm your API key is allowed to make Generative Language calls.</small></div>`;
+  } finally {
+    aiBtn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
